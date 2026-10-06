@@ -60,23 +60,35 @@
 ### `search_listings`
 
 - **What it does:**
+Search the listings data for items matching a description, and optionally a size and a price ceiling. Where it finds items matching the criteria.
 - **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
+- description (str), size (str), max_price (float)
 - **Returns:**
+- A list of dictionaries, each representing an item with its details. The most accurate matches are returned first.
 - **When it has nothing:**
+- Returns an empty list.
 
 ### `suggest_outfit`
 
 - **What it does:**
+- Suggests an outfit based on the user's search results.
 - **Inputs:**
+- new_item (dict), wardrobe (list of dicts)
 - **Returns:**
+- A list of dictionaries, each representing an item with its details.
 - **When it has nothing:**
+- Returns an empty list.
 
 ### `create_fit_card`
 
 - **What it does:**
+- Creates an accurate caption based on the potential find. 
 - **Inputs:**
+- outfit (string), new_item (list of dict)
 - **Returns:**
+- A string representing the find with an accurate caption.
 - **When it has nothing:**
+- Returns an empty string.
 
 ---
 
@@ -94,12 +106,15 @@
      function have to be real. -->
 
 **Branch rule:**
+If the create_fit_card returns an empty caption or the outfit is empty, then it should show "No caption can be generated". Otherwise continue to genereate() 
 
 **Where it lives:** `agent.py::run_agent`
 
 **How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+The query is parsed using string splitting. Then the parser extracts the outfit and new items details.
 
 **What moves through the session:** <!-- which fields, in what order -->
+the session stores the original query, parsed search results, and the generated fit card. If no listings match, an error message it stored.
 
 ---
 
@@ -115,6 +130,8 @@
 ```
 $ python app.py ask '...'
 
+python app.py ask 'ventage jeans under $40'
+
 ```
 
 **The three tools, tested one at a time**
@@ -123,14 +140,58 @@ $ python app.py ask '...'
 $ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
 
 ```
+python -c "from tools import search_listings; print(search_listings('vintage jeans', max_price=40))"
 
 ```
 $ python -c "from tools import suggest_outfit; ..."
 
 ```
+python -c "from tools import suggest_outfit; 
+print(suggest_outfit(
+  [{"id": "lst_002",
+    "title": "Y2K Baby Tee — Butterfly Print",
+    "description": "Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.",
+    "category": "tops",
+    "style_tags": ["y2k", "vintage", "graphic tee", "cottagecore"],
+    "size": "S/M",
+    "condition": "excellent",
+    "price": 18.00,
+    "colors": ["white", "pink", "purple"],
+    "brand": null,
+    "platform": "depop"}], [
+      {
+        "id": "w_001",
+        "name": "Baggy straight-leg jeans, dark wash",
+        "category": "bottoms",
+        "colors": ["dark blue", "indigo"],
+        "style_tags": ["denim", "streetwear", "baggy"],
+        "notes": "High-waisted, sits above the hip"
+      },
+      {
+        "id": "w_002",
+        "name": "Wide-leg khaki trousers",
+        "category": "bottoms",
+        "colors": ["khaki", "tan"],
+        "style_tags": ["earth tones", "minimal", "wide-leg"],
+        "notes": null
+      },))"
 
 ```
 $ python -c "from tools import create_fit_card; ..."
+
+python -c "from tools import create_fit_card; print(create_fit_card(
+  'jeans and brown sneakers', 
+  [{"id": "lst_002",
+    "title": "Y2K Baby Tee — Butterfly Print",
+    "description": "Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.",
+    "category": "tops",
+    "style_tags": ["y2k", "vintage", "graphic tee", "cottagecore"],
+    "size": "S/M",
+    "condition": "excellent",
+    "price": 18.00,
+    "colors": ["white", "pink", "purple"],
+    "brand": null,
+    "platform": "depop")}])"
 
 ```
 
@@ -148,14 +209,20 @@ $ python -c "from tools import create_fit_card; ..."
 **Moment 1**
 
 - *What I asked for:*
+- I used codex to gain clarity on certain points of the questions like what does "what moves through the session means"
 - *What came back:*
+- It gave me a example on how to answer the question
 - *What I changed:*
+- I was able to think through the problem differently and show the whole process of how the code interacted with the input.
 
 **Moment 2**
 
 - *What I asked for:*
+- I used codex to clarify what is the purpose of branch rule.
 - *What came back:*
+- It gave me an explanation of what branch rule is and how it works. As well as providing me an example of how to create it.
 - *What I changed:*
+- I changed my solution to include the if-else like structure to the thoughts I had already written down.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
