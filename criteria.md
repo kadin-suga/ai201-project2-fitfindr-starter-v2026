@@ -28,6 +28,7 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 <!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
+My search is a plain keyword match and some phrasings will miss. 
 
 ---
 
@@ -39,10 +40,12 @@ Given a query that matches no listings, the agent stops before calling
 **Why this target:**
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
+Agent runs are fragile therefore sometimes fail multiple times before succeeding. So to verify that this is a true fault the agent must run 5 of 5 tries. Therefore 5 of 5 is reasonable here to verify that the reason why the agent stopped before calling `suggest_outfit` is not a state failure.
 
 ---
 
 ## 3. Something about state
+
 
 <!-- YOU WRITE THIS ONE.
 
@@ -54,10 +57,10 @@ Given a query that matches no listings, the agent stops before calling
      compares session["selected_item"] against what actually reached
      suggest_outfit is the shape you're after. -->
 
-
+Compare session["selected_item"] against what actually reached suggest_outfit is the output that is compared against the actual item. Check noticeable differences between the two items to verify that the model is acting on the same state.
 
 **Why this target:**
-
+This specific target is chosen to verify that the model is acting on the same item as the item returned by session["selected_item"]. Having this identification for the outputs of the models allows for easier debugging and verification of the model's behavior.
 
 
 ---
@@ -75,10 +78,11 @@ Given a query that matches no listings, the agent stops before calling
      sentence? A card longer than a caption anyone would post? Any of those can
      be turned into a number. -->
 
+Inside a fit card output, I would look for specific typographic glyph next to numeric numbers and count the sentence size of no more than 3 sentences to verify that the model has the expected output details as required. 
 
 
 **Why this target:**
-
+This target allows the model output be automatically verified for expected output details and it allows the model to be evaluated for its ability to produce consistent, accurate relevant output. Having to verify the fit card output to identify numeric values and sentence size is a reliable way to verify that the model is producing information that would be useful to the user.
 
 
 ---
@@ -92,10 +96,12 @@ Given a query that matches no listings, the agent stops before calling
      search respects a price ceiling — anything, as long as it names a number
      or an observable outcome. -->
 
+I would compare whether or not the model output matches the expected price requirements. This is through extracting the numeric value from the model output and comparing it to the expected price ceilling. If the model output does not match the expected price, the model is not producing the expected output and should be re-run for its ability to produce consistent, accurate relevant output.
+
 
 
 **Why this target:**
-
+This specific target allows the model output to be evaluated for matching the expected price requirements, as it ties equivalently to the user's expectations. If the model fails to match the expected price ceiling and outputs this response, the user would complain to the model provider and never use the model again. 
 
 
 ---
