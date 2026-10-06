@@ -20,6 +20,8 @@ That last line is what your loop branches on. "Returns a list" earns nothing —
 the description has to say what is *in* the list.
 """
 
+import re
+
 import config  # noqa: F401 — you'll use this in search_listings
 from generate import generate
 from utils.data_loader import load_listings
@@ -27,6 +29,29 @@ from utils.data_loader import load_listings
 
 # ── Tool 1: search_listings ───────────────────────────────────────────────────
 
+_STOPWORDS = {
+    "a", "an", "and", "the", "for", "with", "under", "over", "in", "of"
+}
+
+def _keywords(text: str) -> set[str]:
+    """Lowercase words worth matching on, stopwords removed."""
+    words = re.findall(r"[a-z0-9']+", (text or "").lower())
+    return {w for w in words if w not in _STOPWORDS and len(w) > 1}
+
+def _size_tokens(size: str) -> set[str]:
+    cleaned = re.sub(r"\([^)]*\)", " ", size or "") # drop parentheticals
+    parts = [p.strip().upper() for p in cleaned.split("/")]
+    return {p for p in parts if p}
+
+def _size_matches(wanted: str, listing_size: str) -> bool:
+    if not wanted:
+        return True
+    listing_tokens = _size_tokens(listing_size)
+    if any(token.startswith("ONE SIZE") for token in listing_tokens):
+        return True
+    return bool(_size_tokens(wanted) & listing_tokens)
+
+    
 def search_listings(
     description: str,
     size: str | None = None,
@@ -78,8 +103,30 @@ def search_listings(
     Test it from a terminal before you move on:
         python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
     """
-    # TODO: replace this with your implementation
-    return []
+    wanted_keywords = _keywords(description)
+    listings = load_listings()  
+
+    scored_list= []
+    for listing in listings:
+        # checks the max_price, size filters, and skips if they don't match
+        if max_price is not None and listing['price'] > max_price:
+            continue
+        if size is not None and not _size_matches(size, listing['size']):
+            continue
+            
+        listing_desc = _keywords(listing['description'])
+        score = len(wanted_keywords & listing_desc)
+
+        if score == 0:
+            continue
+        scored_list.append((score, listing))
+
+    scored_list.sort(key=lambda x: x[0], reverse=True)
+    
+    return [
+        listing
+        for score, listing in scored_list[:config.SEARCH_RESULT_LIMIT]
+    ]
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -113,8 +160,34 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
     # TODO: replace this with your implementation
-    return ""
-
+    # 
+    item_text = (
+              f"{new_item['title']}, "
+              f"category: {new_item['category']}, "
+              f"colors: {', '.join(new_item['colors'])}, "
+              f"style: {', '.join(new_item['style_tags'])}"
+          )
+        
+    if not wardrobe['items']:
+        # return "No wardrobe items found. Here are some general styling ideas for this item: 
+        prompt = (
+            f"Given that there is no current wardrobe items, suggest a fitting outfit based on the new item: {item_text}"
+            f"Generate styling advice and recommendations for this item to pair with it."
+        )
+    else:
+        wardrobe_text = "\n".join(
+            f"-{item['name']} ({item['category']}; "
+            f"colors: ({', '.join(item['colors'])})"
+            f"style: ({', '.join(item['style_tags'])})"
+            for item in wardrobe['items']
+        )
+        prompt = (
+            f"Given that this is the current wardrobe items, {wardrobe_text}, "
+            f"Based on the current wardrobe items, suggest one or two new thrifted outfits following the style of the expected item."
+            f"Epected item: {item_text}"
+        )
+        
+    return generate(prompt)
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
 
@@ -152,5 +225,20 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import create_fit_card; from utils.data_loader import load_listings; print(create_fit_card('jeans and white sneakers', load_listings()[0]))"
     """
-    # TODO: replace this with your implementation
-    return ""
+    if not outfit or outfit.strip() == "":
+        return "No outfit suggested."
+
+    prompt = (
+        f"Given that this is a fit card generator\n\n"
+        f"Create a 2 to 4 sentence caption based on the outfit and item details.\n"
+        f"Outfit: {outfit}\n"
+        f"Item details:\n"
+        f"{new_item}\n"
+        f"\nCaption: \n"
+        f"The caption should read like a real post rather than a product description."
+        f"Mention the item and its price and platform once each, and be specific about the vibe of the item."
+        f"Do not include any product descriptions or direct sales pitches. "    
+    )
+    
+    return generate(prompt, temperature=0.0, cache=config.CACHE_ENABLED)
+    
